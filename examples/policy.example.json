@@ -1,0 +1,26 @@
+{
+  "policyId": "pharos-atlantic-default",
+  "version": "1.0.0",
+  "spendLimit": {
+    "maxAmountWei": "10000000000000000"
+  },
+  "allowlist": {
+    "recipients": [
+      "0x0000000000000000000000000000000000000000"
+    ],
+    "contracts": []
+  },
+  "timeWindow": {
+    "timezone": "UTC",
+    "windows": [
+      {
+        "start": "00:00",
+        "end": "23:59"
+      }
+    ],
+    "boundary": {
+      "startInclusive": true,
+      "endInclusive": true
+    }
+  }
+}

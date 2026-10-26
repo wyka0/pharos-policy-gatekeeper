@@ -1,0 +1,302 @@
+{
+  "mode": "mock-demo",
+  "generatedAt": "2026-10-26T23:24:22.398Z",
+  "deterministic": true,
+  "blockchainInteraction": false,
+  "policy": {
+    "policyId": "demo-policy",
+    "version": "1.0.0",
+    "spendLimit": "100000000000000000 wei (0.1 PHRS)",
+    "window": "09:00–17:00",
+    "timezone": "UTC",
+    "recipients": 2,
+    "contracts": 1
+  },
+  "cases": [
+    {
+      "id": "A",
+      "name": "Allowed action — within spend limit, approved recipient, inside window",
+      "requestId": "demo-A",
+      "decision": "ALLOW",
+      "policyId": "demo-policy",
+      "policyVersion": "1.0.0",
+      "decidingRuleIds": [
+        "SPEND_LIMIT",
+        "ADDRESS_ALLOWLIST",
+        "TIME_WINDOW"
+      ],
+      "reasons": [],
+      "ruleResults": [
+        {
+          "ruleId": "SPEND_LIMIT",
+          "passed": true,
+          "reason": "Requested 10000000000000000 wei is within the policy maximum 100000000000000000 wei (inclusive)."
+        },
+        {
+          "ruleId": "ADDRESS_ALLOWLIST",
+          "passed": true,
+          "reason": "Recipient 0x1111111111111111111111111111111111111111 is approved for native transfers (sender 0x4444444444444444444444444444444444444444)."
+        },
+        {
+          "ruleId": "TIME_WINDOW",
+          "passed": true,
+          "reason": "Request local time 12:00 on 2026-10-27 (Tue) in UTC is inside allowed window \"09:00-17:00\" (start inclusive, end exclusive)."
+        }
+      ],
+      "executionAttempted": true,
+      "adapterCallsForCase": 1,
+      "auditRecordId": "aud-001",
+      "timestamp": "2026-10-27T12:00:00.000Z"
+    },
+    {
+      "id": "B",
+      "name": "Spend-limit denial — 0.5 PHRS exceeds the 0.1 PHRS maximum",
+      "requestId": "demo-B",
+      "decision": "DENY",
+      "policyId": "demo-policy",
+      "policyVersion": "1.0.0",
+      "decidingRuleIds": [
+        "SPEND_LIMIT"
+      ],
+      "reasons": [
+        "Spend limit exceeded: requested 500000000000000000 wei exceeds the policy maximum 100000000000000000 wei."
+      ],
+      "ruleResults": [
+        {
+          "ruleId": "SPEND_LIMIT",
+          "passed": false,
+          "reason": "Spend limit exceeded: requested 500000000000000000 wei exceeds the policy maximum 100000000000000000 wei."
+        },
+        {
+          "ruleId": "ADDRESS_ALLOWLIST",
+          "passed": true,
+          "reason": "Recipient 0x1111111111111111111111111111111111111111 is approved for native transfers (sender 0x4444444444444444444444444444444444444444)."
+        },
+        {
+          "ruleId": "TIME_WINDOW",
+          "passed": true,
+          "reason": "Request local time 12:00 on 2026-10-27 (Tue) in UTC is inside allowed window \"09:00-17:00\" (start inclusive, end exclusive)."
+        }
+      ],
+      "executionAttempted": false,
+      "adapterCallsForCase": 0,
+      "auditRecordId": "aud-004",
+      "timestamp": "2026-10-27T12:00:00.000Z"
+    },
+    {
+      "id": "C",
+      "name": "Allowlist denial — recipient is not approved",
+      "requestId": "demo-C",
+      "decision": "DENY",
+      "policyId": "demo-policy",
+      "policyVersion": "1.0.0",
+      "decidingRuleIds": [
+        "ADDRESS_ALLOWLIST"
+      ],
+      "reasons": [
+        "Recipient 0x9999999999999999999999999999999999999999 is not on the approved recipient allowlist (2 approved)."
+      ],
+      "ruleResults": [
+        {
+          "ruleId": "SPEND_LIMIT",
+          "passed": true,
+          "reason": "Requested 10000000000000000 wei is within the policy maximum 100000000000000000 wei (inclusive)."
+        },
+        {
+          "ruleId": "ADDRESS_ALLOWLIST",
+          "passed": false,
+          "reason": "Recipient 0x9999999999999999999999999999999999999999 is not on the approved recipient allowlist (2 approved)."
+        },
+        {
+          "ruleId": "TIME_WINDOW",
+          "passed": true,
+          "reason": "Request local time 12:00 on 2026-10-27 (Tue) in UTC is inside allowed window \"09:00-17:00\" (start inclusive, end exclusive)."
+        }
+      ],
+      "executionAttempted": false,
+      "adapterCallsForCase": 0,
+      "auditRecordId": "aud-006",
+      "timestamp": "2026-10-27T12:00:00.000Z"
+    },
+    {
+      "id": "D",
+      "name": "Time-window denial — 20:00 UTC is outside the 09:00–17:00 UTC window",
+      "requestId": "demo-D",
+      "decision": "DENY",
+      "policyId": "demo-policy",
+      "policyVersion": "1.0.0",
+      "decidingRuleIds": [
+        "TIME_WINDOW"
+      ],
+      "reasons": [
+        "Request local time 20:00 on 2026-10-27 (Tue) in UTC is outside all allowed windows: 09:00-17:00."
+      ],
+      "ruleResults": [
+        {
+          "ruleId": "SPEND_LIMIT",
+          "passed": true,
+          "reason": "Requested 10000000000000000 wei is within the policy maximum 100000000000000000 wei (inclusive)."
+        },
+        {
+          "ruleId": "ADDRESS_ALLOWLIST",
+          "passed": true,
+          "reason": "Recipient 0x1111111111111111111111111111111111111111 is approved for native transfers (sender 0x4444444444444444444444444444444444444444)."
+        },
+        {
+          "ruleId": "TIME_WINDOW",
+          "passed": false,
+          "reason": "Request local time 20:00 on 2026-10-27 (Tue) in UTC is outside all allowed windows: 09:00-17:00."
+        }
+      ],
+      "executionAttempted": false,
+      "adapterCallsForCase": 0,
+      "auditRecordId": "aud-008",
+      "timestamp": "2026-10-27T20:00:00.000Z"
+    },
+    {
+      "id": "E",
+      "name": "Multiple-rule denial — over limit AND unapproved recipient AND outside window",
+      "requestId": "demo-E",
+      "decision": "DENY",
+      "policyId": "demo-policy",
+      "policyVersion": "1.0.0",
+      "decidingRuleIds": [
+        "SPEND_LIMIT",
+        "ADDRESS_ALLOWLIST",
+        "TIME_WINDOW"
+      ],
+      "reasons": [
+        "Spend limit exceeded: requested 500000000000000000 wei exceeds the policy maximum 100000000000000000 wei.",
+        "Recipient 0x9999999999999999999999999999999999999999 is not on the approved recipient allowlist (2 approved).",
+        "Request local time 20:00 on 2026-10-27 (Tue) in UTC is outside all allowed windows: 09:00-17:00."
+      ],
+      "ruleResults": [
+        {
+          "ruleId": "SPEND_LIMIT",
+          "passed": false,
+          "reason": "Spend limit exceeded: requested 500000000000000000 wei exceeds the policy maximum 100000000000000000 wei."
+        },
+        {
+          "ruleId": "ADDRESS_ALLOWLIST",
+          "passed": false,
+          "reason": "Recipient 0x9999999999999999999999999999999999999999 is not on the approved recipient allowlist (2 approved)."
+        },
+        {
+          "ruleId": "TIME_WINDOW",
+          "passed": false,
+          "reason": "Request local time 20:00 on 2026-10-27 (Tue) in UTC is outside all allowed windows: 09:00-17:00."
+        }
+      ],
+      "executionAttempted": false,
+      "adapterCallsForCase": 0,
+      "auditRecordId": "aud-010",
+      "timestamp": "2026-10-27T20:00:00.000Z"
+    },
+    {
+      "id": "F1",
+      "name": "Invalid request — malformed amount (negative with decimals) is denied and never executed",
+      "requestId": "demo-F1",
+      "decision": "DENY",
+      "policyId": "demo-policy",
+      "policyVersion": "1.0.0",
+      "decidingRuleIds": [
+        "SPEND_LIMIT"
+      ],
+      "reasons": [
+        "Invalid amount: valueWei \"-1.5\" is not a decimal integer wei string (no sign, no decimals, no exponent)."
+      ],
+      "ruleResults": [
+        {
+          "ruleId": "SPEND_LIMIT",
+          "passed": false,
+          "reason": "Invalid amount: valueWei \"-1.5\" is not a decimal integer wei string (no sign, no decimals, no exponent)."
+        },
+        {
+          "ruleId": "ADDRESS_ALLOWLIST",
+          "passed": true,
+          "reason": "Recipient 0x1111111111111111111111111111111111111111 is approved for native transfers (sender 0x4444444444444444444444444444444444444444)."
+        },
+        {
+          "ruleId": "TIME_WINDOW",
+          "passed": true,
+          "reason": "Request local time 12:00 on 2026-10-27 (Tue) in UTC is inside allowed window \"09:00-17:00\" (start inclusive, end exclusive)."
+        }
+      ],
+      "executionAttempted": false,
+      "adapterCallsForCase": 0,
+      "auditRecordId": "aud-012",
+      "timestamp": "2026-10-27T12:00:00.000Z"
+    },
+    {
+      "id": "F2",
+      "name": "Invalid policy — policy missing the allowlist section fails closed and is never executed",
+      "requestId": "demo-F2",
+      "decision": "DENY",
+      "policyId": "unknown",
+      "policyVersion": "unknown",
+      "decidingRuleIds": [],
+      "reasons": [
+        "POLICY_INVALID: allowlist: missing or malformed — this section is required and the policy will not run without it (fail-closed; no execution attempted)"
+      ],
+      "ruleResults": [],
+      "executionAttempted": false,
+      "adapterCallsForCase": 0,
+      "auditRecordId": "aud-014",
+      "timestamp": "2026-10-27T12:00:00.000Z"
+    },
+    {
+      "id": "G",
+      "name": "Allowed contract call — target contract is on the contracts allowlist",
+      "requestId": "demo-G",
+      "decision": "ALLOW",
+      "policyId": "demo-policy",
+      "policyVersion": "1.0.0",
+      "decidingRuleIds": [
+        "SPEND_LIMIT",
+        "ADDRESS_ALLOWLIST",
+        "TIME_WINDOW"
+      ],
+      "reasons": [],
+      "ruleResults": [
+        {
+          "ruleId": "SPEND_LIMIT",
+          "passed": true,
+          "reason": "Requested 0 wei is within the policy maximum 100000000000000000 wei (inclusive)."
+        },
+        {
+          "ruleId": "ADDRESS_ALLOWLIST",
+          "passed": true,
+          "reason": "Contract 0x3333333333333333333333333333333333333333 is approved for contract interactions (sender 0x4444444444444444444444444444444444444444)."
+        },
+        {
+          "ruleId": "TIME_WINDOW",
+          "passed": true,
+          "reason": "Request local time 12:00 on 2026-10-27 (Tue) in UTC is inside allowed window \"09:00-17:00\" (start inclusive, end exclusive)."
+        }
+      ],
+      "executionAttempted": true,
+      "adapterCallsForCase": 1,
+      "auditRecordId": "aud-016",
+      "timestamp": "2026-10-27T12:00:00.000Z"
+    }
+  ],
+  "totals": {
+    "decisions": 8,
+    "allowed": 2,
+    "denied": 6,
+    "adapterCallsTotal": 2,
+    "adapterCallsOnDenied": 0
+  },
+  "audit": {
+    "path": "evidence/demo-audit.jsonl",
+    "records": 40,
+    "allowedDecisions": 8,
+    "deniedDecisions": 24
+  },
+  "notes": [
+    "Mock demo only: the mock adapter holds no wallet and cannot broadcast anything.",
+    "Every denied action produced zero adapter calls.",
+    "Only allowed actions reached the mock adapter.",
+    "Time-window cases use an injected clock (12:00 UTC inside / 20:00 UTC outside the 09:00–17:00 UTC window)."
+  ]
+}

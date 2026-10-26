@@ -1,0 +1,70 @@
+{
+  "label": "SIMULATION — NO TRANSACTION BROADCAST",
+  "generatedAt": "2026-10-26T23:21:15.728Z",
+  "broadcasted": false,
+  "signed": false,
+  "network": {
+    "name": "Pharos Atlantic Testnet",
+    "chainIdExpected": 688689,
+    "chainIdActual": 688689,
+    "chainIdVerified": true,
+    "rpcUrl": "https://atlantic.dplabs-internal.com"
+  },
+  "policy": {
+    "decisionId": "dec-e0dbff9e-412d-4518-8aa5-561be7b18924",
+    "decision": "DENY",
+    "policyId": "pharos-atlantic-default",
+    "policyVersion": "1.0.0",
+    "ruleResults": [
+      {
+        "ruleId": "SPEND_LIMIT",
+        "passed": true,
+        "reason": "Requested 1000000000000000 wei is within the policy maximum 10000000000000000 wei (inclusive)."
+      },
+      {
+        "ruleId": "ADDRESS_ALLOWLIST",
+        "passed": false,
+        "reason": "Recipient 0x2222222222222222222222222222222222222222 is not on the approved recipient allowlist (1 approved)."
+      },
+      {
+        "ruleId": "TIME_WINDOW",
+        "passed": true,
+        "reason": "Request local time 23:21 on 2026-10-26 (Mon) in UTC is inside allowed window \"00:00-23:59\" (start inclusive, end inclusive)."
+      }
+    ],
+    "reasons": [
+      "Recipient 0x2222222222222222222222222222222222222222 is not on the approved recipient allowlist (1 approved)."
+    ]
+  },
+  "request": {
+    "kind": "native_transfer",
+    "sender": "0x1111111111111111111111111111111111111111",
+    "recipient": "0x2222222222222222222222222222222222222222",
+    "valueWei": "1000000000000000",
+    "valuePhrs": "0.001"
+  },
+  "simulation": {
+    "ok": true,
+    "ethCall": {
+      "method": "eth_call",
+      "status": "success",
+      "returnData": "0x",
+      "revert": null
+    },
+    "gasEstimateWei": "21000",
+    "gasPriceWei": "10000000000",
+    "estimatedFeeWei": "210000000000000",
+    "estimatedFeePhrs": "0.00021",
+    "senderBalanceWei": "204868297450154497",
+    "predictedSenderBalanceAfterWei": "203658297450154497",
+    "balancePredictionReliable": true
+  },
+  "notes": [
+    "Simulation executes read-only (eth_call) and does not persist state. Contract state changes that a real broadcast would cause cannot be predicted from simulation.",
+    "A successful simulation does not prove that a transaction submitted later will succeed."
+  ],
+  "disclaimer": [
+    "This file records a READ-ONLY simulation. No transaction was signed or broadcast.",
+    "Simulation never proves that a transaction submitted later will succeed."
+  ]
+}

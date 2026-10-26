@@ -1,0 +1,66 @@
+{
+  "description": "Example requests for the Policy Gatekeeper skill. Amounts are wei decimal strings; arithmetic is BigInt-only.",
+  "requests": [
+    {
+      "name": "allowed-transfer",
+      "expected": "ALLOW",
+      "request": {
+        "requestId": "req-allowed-001",
+        "kind": "native_transfer",
+        "from": "0x4444444444444444444444444444444444444444",
+        "to": "0x2222222222222222222222222222222222222222",
+        "valueWei": "10000000000000000"
+      }
+    },
+    {
+      "name": "spend-limit-denied",
+      "expected": "DENY (SPEND_LIMIT)",
+      "request": {
+        "requestId": "req-spend-002",
+        "kind": "native_transfer",
+        "from": "0x4444444444444444444444444444444444444444",
+        "to": "0x2222222222222222222222222222222222222222",
+        "valueWei": "100000000000000001"
+      }
+    },
+    {
+      "name": "allowlist-denied",
+      "expected": "DENY (ADDRESS_ALLOWLIST)",
+      "request": {
+        "requestId": "req-allow-003",
+        "kind": "native_transfer",
+        "from": "0x4444444444444444444444444444444444444444",
+        "to": "0x9999999999999999999999999999999999999999",
+        "valueWei": "1000000000000000"
+      }
+    },
+    {
+      "name": "time-window-denied",
+      "expected": "DENY (TIME_WINDOW) when evaluated at a local time outside the configured windows",
+      "request": {
+        "requestId": "req-time-004",
+        "kind": "native_transfer",
+        "from": "0x4444444444444444444444444444444444444444",
+        "to": "0x2222222222222222222222222222222222222222",
+        "valueWei": "1000000000000000"
+      }
+    },
+    {
+      "name": "contract-call-allowed",
+      "expected": "ALLOW when the contract address is on the contracts allowlist",
+      "request": {
+        "requestId": "req-call-005",
+        "kind": "contract_call",
+        "from": "0x4444444444444444444444444444444444444444",
+        "to": "0x3333333333333333333333333333333333333333",
+        "valueWei": "0",
+        "data": "0x"
+      }
+    }
+  ],
+  "notes": [
+    "Replace the zero address in allowlist.recipients with your own approved recipient addresses before live use.",
+    "Add contract addresses to allowlist.contracts before evaluating contract_call requests.",
+    "maxAmountWei of 10000000000000000 equals 0.01 PHRS."
+  ]
+}

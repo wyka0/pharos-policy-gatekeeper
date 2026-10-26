@@ -1,0 +1,31 @@
+{
+  "name": "pharos-policy-gatekeeper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SkillEngine-compatible Policy Gatekeeper skill for Pharos: policy evaluation (spend limits, address allowlists, time windows), guarded execution, read-only Atlantic testnet simulation, and explicit-confirmation live transfers.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "demo": "tsx src/demo.ts",
+    "simulate:testnet": "tsx src/cli.ts simulate",
+    "testnet:transfer": "tsx src/cli.ts transfer"
+  },
+  "dependencies": {
+    "viem": "^2.57.11"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.30.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.35.0",
+    "vitest": "^5.0.5"
+  }
+}
