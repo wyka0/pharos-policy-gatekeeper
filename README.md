@@ -121,7 +121,10 @@ policy produces a specific `POLICY_INVALID: …` reason.
 
 Append-only JSON Lines (default `audit/audit.jsonl`; demo:
 `evidence/demo-audit.jsonl`). One `policy_decision` record per decision and
-one `execution_result` record when execution was attempted. Records carry
+one `execution_result` record when execution was attempted **or a live
+attempt was blocked before signing** (including failed safety checks and
+revalidation blocks; the demo evidence file is reset at the start of each
+demo run so it describes exactly one run). Records carry
 timestamps, decision/request/policy IDs, rule outcomes, deciding rule IDs,
 reasons, mode (`mock`/`simulation`/`live`), execution outcome, and the
 transaction hash **only** when one was actually returned. Private keys, seed

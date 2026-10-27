@@ -218,6 +218,7 @@ export interface LiveTransactionEvidence {
   receipt: LiveTransferReceiptReport | null;
   stages: LiveTransferResult["stages"];
   notice?: string;
+  auditPersistenceError?: string | null;
   secrets: "none — private keys and signed raw transaction bytes are never written to evidence";
 }
 
@@ -259,6 +260,7 @@ export function buildLiveTransactionEvidence(result: LiveTransferResult, generat
     receipt: result.receipt ?? null,
     stages: result.stages,
     notice: result.notice,
+    auditPersistenceError: result.auditPersistenceError ?? null,
     secrets: "none — private keys and signed raw transaction bytes are never written to evidence"
   };
 }
@@ -358,6 +360,15 @@ export function renderLiveTransactionMarkdown(e: LiveTransactionEvidence): strin
   }
   if (e.notice) {
     lines.push(`## Notice`, ``, e.notice, ``);
+  }
+  if (e.auditPersistenceError) {
+    lines.push(
+      `## Audit persistence`,
+      ``,
+      `The transaction result in this file is real and unaffected, but writing the execution record to the audit log failed: ${e.auditPersistenceError}`,
+      `No retry or rebroadcast was attempted because of the audit failure.`,
+      ``
+    );
   }
   lines.push(
     `## Execution stages`,

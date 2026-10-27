@@ -268,10 +268,13 @@ broadcast → receipt), and verified receipt fields — never secrets.
 ## Audit Log
 
 Append-only JSON Lines. Default path `audit/audit.jsonl` (override with
-`AUDIT_PATH`; the demo writes `evidence/demo-audit.jsonl`). One record per
-policy decision and one per execution result. Retention: records are never
-modified or deleted and the file grows without rotation — archive or
-truncate it externally to manage retention.
+`AUDIT_PATH`; the demo writes `evidence/demo-audit.jsonl`, reset at the start
+of each demo run so it describes exactly that run). One record per policy
+decision and one per execution result or blocked live attempt. Records never
+contain private keys, seed phrases, credentials, or signed raw transaction
+bytes; error messages are sanitized. Retention: records are never modified or
+deleted and the file grows without rotation — archive or truncate it
+externally to manage retention.
 
 ```json
 {
@@ -295,5 +298,5 @@ truncate it externally to manage retention.
 
 Execution records (`kind: "execution_result"`) add `execution` (status,
 detail) and `transactionHash` — only when a hash was actually returned by a
-submission. The log never contains private keys, seed phrases, credentials,
-or signed raw transaction bytes; error messages are sanitized.
+submission. Records for blocked live attempts carry `executionAttempted:
+false` and a sanitized failure detail.

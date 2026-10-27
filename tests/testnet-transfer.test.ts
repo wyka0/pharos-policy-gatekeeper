@@ -12,7 +12,7 @@ import {
   runLiveTransfer,
   canonicalRequestHash
 } from "../src/index.js";
-import type { PolicyRequest } from "../src/types.js";
+import type { AuditRecord, PolicyRequest } from "../src/types.js";
 import { AuditWriteError } from "../src/audit/logger.js";
 import { makeLocalAccount, makePolicy, MockRpc, RECIPIENT, SENDER } from "./helpers.js";
 
@@ -334,6 +334,65 @@ describe("successful live transfer with receipt verification", () => {
     const result = await runLiveTransfer(f.deps, target());
     expect(result.status).toBe("failed-onchain");
     expect(result.receipt?.status).toBe("reverted");
+  });
+});
+
+describe("post-broadcast audit persistence failures", () => {
+  /** Audit logger that records policy decisions but fails on execution-result writes. */
+  function auditFailingOnExecutionResult() {
+    const kept: AuditRecord[] = [];
+    return {
+      kept,
+      async append(record: AuditRecord): Promise<string> {
+        if (record.kind === "execution_result") throw new AuditWriteError("simulated audit outage");
+        kept.push(record);
+        return record.auditId;
+      }
+    };
+  }
+
+  it("keeps a confirmed receipt when the post-broadcast audit write fails", async () => {
+    const f = makeFixture();
+    const failing = auditFailingOnExecutionResult();
+    (f.deps as { audit: unknown }).audit = failing;
+    const result = await runLiveTransfer(f.deps, target());
+    // The transaction result is real and must not be erased or misrepresented.
+    expect(result.status).toBe("confirmed");
+    expect(result.transactionHash).toBeTruthy();
+    expect(result.receipt?.status).toBe("success");
+    expect(result.receipt?.fieldVerification.every((v) => v.match)).toBe(true);
+    // The audit failure is reported separately from the transaction status.
+    expect(result.auditPersistenceError).toContain("simulated audit outage");
+    // Only policy decisions were persisted (initial + revalidation); the
+    // post-broadcast execution write failed once, with no retry.
+    expect(failing.kept.filter((r) => r.kind === "policy_decision")).toHaveLength(2);
+    expect(failing.kept.filter((r) => r.kind === "execution_result")).toHaveLength(0);
+    expect(result.stages.some((s) => s.name === "audit-persistence" && s.status === "failed")).toBe(true);
+  });
+
+  it("keeps the ambiguous outcome when the post-broadcast audit write fails", async () => {
+    const f = makeFixture();
+    (f.deps as { audit: unknown }).audit = auditFailingOnExecutionResult();
+    let attempts = 0;
+    (f.deps as { rpc: { sendRawTransaction: (tx: `0x${string}`) => Promise<`0x${string}`> } }).rpc.sendRawTransaction = async () => {
+      attempts += 1;
+      throw new Error("connection reset while submitting");
+    };
+    const result = await runLiveTransfer(f.deps, target());
+    expect(result.status).toBe("ambiguous");
+    expect(result.auditPersistenceError).toContain("simulated audit outage");
+    expect(result.notice).toContain("AMBIGUOUS");
+    expect(attempts).toBe(1); // no retry, not even for the audit write
+    expect(result.transactionHash).toBeUndefined();
+  });
+
+  it("still fails closed when the audit write fails on a blocked pre-broadcast path", async () => {
+    const f = makeFixture();
+    f.rpc.balances.set(f.account.address.toLowerCase(), 1n); // forces the insufficient-funds block
+    (f.deps as { audit: unknown }).audit = auditFailingOnExecutionResult();
+    await expect(runLiveTransfer(f.deps, target())).rejects.toBeInstanceOf(AuditWriteError);
+    expect(f.rpc.sendRawCount).toBe(0);
+    expect(f.rpc.signedTransactions).toHaveLength(0);
   });
 });
 

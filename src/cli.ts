@@ -136,6 +136,9 @@ function printLiveResult(result: LiveTransferResult): void {
   console.log(`=== LIVE TRANSFER RESULT: ${result.status.toUpperCase()} ===`);
   if (result.blockedReason) console.log(`blocked: ${result.blockedReason}`);
   if (result.notice) console.log(`notice: ${result.notice}`);
+  if (result.auditPersistenceError) {
+    console.log(`audit persistence failure (transaction result above is real and unaffected; no retry was attempted): ${result.auditPersistenceError}`);
+  }
   if (result.transactionHash) console.log(`transaction hash: ${result.transactionHash}`);
   const r = result.receipt;
   if (r) {

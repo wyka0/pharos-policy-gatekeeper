@@ -1,7 +1,7 @@
 # Mock Demo Results
 
 Mode: **mock demo** — deterministic, no blockchain interaction, no wallet access.
-Generated from actual execution at 2026-10-26T23:24:22.398Z.
+Generated from actual execution at 2026-10-27T00:36:28.731Z.
 
 ## Policy used
 
@@ -118,7 +118,7 @@ Generated from actual execution at 2026-10-26T23:24:22.398Z.
 | Denied | 6 |
 | Mock adapter calls (total) | 2 |
 | Mock adapter calls from denied actions | **0** |
-| Audit records (evidence/demo-audit.jsonl) | 40 (8 ALLOW, 24 DENY decisions) |
+| Audit records (evidence/demo-audit.jsonl) | 10 (2 ALLOW, 6 DENY decisions) |
 
 ## Notes
 
@@ -126,3 +126,4 @@ Generated from actual execution at 2026-10-26T23:24:22.398Z.
 - Every denied action produced zero adapter calls.
 - Only allowed actions reached the mock adapter.
 - Time-window cases use an injected clock (12:00 UTC inside / 20:00 UTC outside the 09:00–17:00 UTC window).
+- Evidence is isolated to this run: demo-audit.jsonl is reset at the start of each run (8 decisions + 2 execution results = 10 records).

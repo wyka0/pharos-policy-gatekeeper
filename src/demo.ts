@@ -7,13 +7,13 @@
  *
  * Evidence is generated from the ACTUAL results of this run.
  */
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir, rm } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { PolicyRequest } from "./types.js";
 import { validatePolicy } from "./policy/validate-policy.js";
 import { PolicyGuard } from "./execution/guard.js";
 import { MockTransferAdapter } from "./execution/mock-adapter.js";
-import { InMemoryAuditLogger, JsonLinesAuditLogger, readAuditFile } from "./audit/logger.js";
+import { InMemoryAuditLogger, JsonLinesAuditLogger } from "./audit/logger.js";
 import { formatWeiToPhrs } from "./units.js";
 
 const DEMO_POLICY_RAW = {
@@ -167,9 +167,15 @@ export async function runDemo(evidenceDir = "evidence"): Promise<DemoResults> {
   idCounter = 0;
   const adapter = new MockTransferAdapter();
   const auditMemory = new InMemoryAuditLogger();
-  const auditFile = new JsonLinesAuditLogger(`${evidenceDir}/demo-audit.jsonl`);
-  // Dual-write: keep an in-memory copy for this summary while also appending
-  // to the JSON Lines evidence file. A file write failure stops the demo (fail closed).
+  const auditPath = `${evidenceDir}/demo-audit.jsonl`;
+  // Evidence isolation: remove any previous demo audit file so the append-only
+  // JSONL reflects exactly THIS run. Runtime audit logs outside the demo
+  // evidence path (e.g. audit/audit.jsonl) are never touched.
+  await rm(auditPath, { force: true });
+  const auditFile = new JsonLinesAuditLogger(auditPath);
+  // Dual-write: keep an in-memory copy for this run's summary while also
+  // appending to the JSON Lines evidence file. A file write failure stops the
+  // demo (fail closed).
   const audit = {
     append: async (record: Parameters<InMemoryAuditLogger["append"]>[0]): Promise<string> => {
       await auditMemory.append(record);
@@ -225,7 +231,9 @@ export async function runDemo(evidenceDir = "evidence"): Promise<DemoResults> {
 
   const deniedCases = caseResults.filter((c) => c.decision === "DENY");
   const allowedCases = caseResults.filter((c) => c.decision === "ALLOW");
-  const records = await readAuditFile(`${evidenceDir}/demo-audit.jsonl`);
+  // Summary counts come from THIS run's in-memory records, never from the
+  // accumulated file, so the evidence always describes exactly one run.
+  const records = auditMemory.records;
 
   const results: DemoResults = {
     mode: "mock-demo",
@@ -259,7 +267,8 @@ export async function runDemo(evidenceDir = "evidence"): Promise<DemoResults> {
       "Mock demo only: the mock adapter holds no wallet and cannot broadcast anything.",
       "Every denied action produced zero adapter calls.",
       "Only allowed actions reached the mock adapter.",
-      "Time-window cases use an injected clock (12:00 UTC inside / 20:00 UTC outside the 09:00–17:00 UTC window)."
+      "Time-window cases use an injected clock (12:00 UTC inside / 20:00 UTC outside the 09:00–17:00 UTC window).",
+      "Evidence is isolated to this run: demo-audit.jsonl is reset at the start of each run (8 decisions + 2 execution results = 10 records)."
     ]
   };
 

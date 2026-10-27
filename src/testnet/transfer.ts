@@ -14,7 +14,7 @@
  * never as confirmed.
  */
 import { getAddress, type PrivateKeyAccount } from "viem";
-import type { PolicyDecision, PolicyRequest } from "../types.js";
+import type { AuditRecord, PolicyDecision, PolicyRequest } from "../types.js";
 import type { AuditLogger } from "../audit/logger.js";
 import { PolicyGuard, canonicalRequestHash, sanitize } from "../execution/guard.js";
 import { simulateTransfer, type SimulationResult } from "./simulate.js";
@@ -89,6 +89,12 @@ export interface LiveTransferResult {
   explorerUrl?: string;
   /** Present when the outcome after submission could not be determined. */
   notice?: string;
+  /**
+   * Present when an audit-log write failed AFTER a possible broadcast. The
+   * transaction result in this object is real and unaffected; only the audit
+   * persistence failed. Never triggers a retry or rebroadcast.
+   */
+  auditPersistenceError?: string;
   requestHash: string;
 }
 
@@ -135,11 +141,11 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
   };
   const requestHash = canonicalRequestHash(request);
 
-  // Step 1: sender derived locally. Step 2: verify RPC chain ID.
+  // Step 1: sender derived locally; verify RPC chain ID.
   let actualChainId: number | null = null;
   try {
     actualChainId = await deps.rpc.getChainId();
-    record(2, "chain-id-verification", actualChainId === ATLANTIC_CHAIN_ID ? "ok" : "blocked", `RPC reports chain ID ${actualChainId}; expected ${ATLANTIC_CHAIN_ID}.`);
+    record(1, "chain-id-verification", actualChainId === ATLANTIC_CHAIN_ID ? "ok" : "blocked", `RPC reports chain ID ${actualChainId}; expected ${ATLANTIC_CHAIN_ID}.`);
     if (actualChainId !== ATLANTIC_CHAIN_ID) {
       return {
         status: "blocked",
@@ -149,7 +155,7 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
       };
     }
   } catch (err) {
-    record(2, "chain-id-verification", "failed", `Could not query chain ID: ${sanitize((err as Error).message)}`);
+    record(1, "chain-id-verification", "failed", `Could not query chain ID: ${sanitize((err as Error).message)}`);
     return {
       status: "blocked",
       blockedReason: `RPC unreachable: ${sanitize((err as Error).message)}. No transaction was signed or broadcast.`,
@@ -158,10 +164,10 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
     };
   }
 
-  // Steps 3 (policy evaluation) + audit of the decision.
+  // Step 2 (policy evaluation) + audit of the decision.
   const { decision } = await guard.evaluateAndRecord(request);
   record(
-    3,
+    2,
     "policy-decision",
     decision.decision === "ALLOW" ? "ok" : "blocked",
     `Policy ${decision.policyId} v${decision.policyVersion} → ${decision.decision}` +
@@ -177,36 +183,37 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
     };
   }
 
-  // Step 4/5: funds + gas reads (all read-only, all fail-closed).
+  // Steps 3–5: funds + gas reads (all read-only, all fail-closed).
   let gasEstimate: bigint | null = null;
   let gasPrice: bigint | null = null;
   let balance: bigint | null = null;
   try {
     gasEstimate = await deps.rpc.estimateGas({ from: sender, to: recipient, value: target.valueWei });
-    record(4, "gas-estimation", "ok", `eth_estimateGas → ${gasEstimate.toString()}`);
+    record(3, "gas-estimation", "ok", `eth_estimateGas → ${gasEstimate.toString()}`);
   } catch (err) {
-    record(4, "gas-estimation", "failed", sanitize((err as Error).message));
-    return blockedAfterDecision(decision, `Gas estimation failed: ${sanitize((err as Error).message)}`, stages, requestHash);
+    record(3, "gas-estimation", "failed", sanitize((err as Error).message));
+    return await blockedAfterDecision(deps.audit, decision, `Gas estimation failed: ${sanitize((err as Error).message)}`, stages, requestHash);
   }
   try {
     gasPrice = await deps.rpc.getGasPrice();
-    record(5, "gas-price", "ok", `gas price → ${gasPrice.toString()} wei`);
+    record(4, "gas-price", "ok", `gas price → ${gasPrice.toString()} wei`);
   } catch (err) {
-    record(5, "gas-price", "failed", sanitize((err as Error).message));
-    return blockedAfterDecision(decision, `Gas price query failed: ${sanitize((err as Error).message)}`, stages, requestHash);
+    record(4, "gas-price", "failed", sanitize((err as Error).message));
+    return await blockedAfterDecision(deps.audit, decision, `Gas price query failed: ${sanitize((err as Error).message)}`, stages, requestHash);
   }
   try {
     balance = await deps.rpc.getBalance(sender);
-    record(6, "sender-balance", "ok", `balance → ${balance.toString()} wei (${formatWeiToPhrs(balance)} PHRS)`);
+    record(5, "sender-balance", "ok", `balance → ${balance.toString()} wei (${formatWeiToPhrs(balance)} PHRS)`);
   } catch (err) {
-    record(6, "sender-balance", "failed", sanitize((err as Error).message));
-    return blockedAfterDecision(decision, `Balance query failed: ${sanitize((err as Error).message)}`, stages, requestHash);
+    record(5, "sender-balance", "failed", sanitize((err as Error).message));
+    return await blockedAfterDecision(deps.audit, decision, `Balance query failed: ${sanitize((err as Error).message)}`, stages, requestHash);
   }
   const fee = (gasEstimate ?? 0n) * (gasPrice ?? 0n);
   const totalNeeded = target.valueWei + fee;
   if (balance === null || balance < totalNeeded) {
-    record(6, "balance-sufficiency", "blocked", `balance ${balance?.toString() ?? "unknown"} < value + fee ${totalNeeded.toString()}`);
-    return blockedAfterDecision(
+    record(5, "balance-sufficiency", "blocked", `balance ${balance?.toString() ?? "unknown"} < value + fee ${totalNeeded.toString()}`);
+    return await blockedAfterDecision(
+      deps.audit,
       decision,
       `Insufficient funds: balance ${balance?.toString() ?? "unknown"} wei is below value + estimated fee (${totalNeeded.toString()} wei). No transaction was signed or broadcast.`,
       stages,
@@ -223,16 +230,17 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
     expectedChainId: ATLANTIC_CHAIN_ID
   });
   record(
-    7,
+    6,
     "pre-broadcast-simulation",
     simulation.ok && simulation.ethCall.status === "success" ? "ok" : "blocked",
     summarizeSimulation(simulation)
   );
   if (!simulation.ok) {
-    return blockedAfterDecision(decision, `Pre-broadcast simulation failed (${simulation.errorCode}): ${simulation.errorMessage ?? "unknown error"}. No transaction was signed or broadcast.`, stages, requestHash, simulation);
+    return await blockedAfterDecision(deps.audit, decision, `Pre-broadcast simulation failed (${simulation.errorCode}): ${simulation.errorMessage ?? "unknown error"}. No transaction was signed or broadcast.`, stages, requestHash, simulation);
   }
   if (simulation.ethCall.status !== "success") {
-    return blockedAfterDecision(
+    return await blockedAfterDecision(
+      deps.audit,
       decision,
       `Pre-broadcast simulation predicts a revert: ${simulation.ethCall.revert?.description ?? "no revert data"}. No transaction was signed or broadcast.`,
       stages,
@@ -260,7 +268,7 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
   ].join("\n");
   out(summary);
   const answer = (await deps.confirm(summary)).trim();
-  record(8, "user-confirmation", answer === BROADCAST_CONFIRMATION_PHRASE ? "ok" : "blocked", `user typed ${answer === BROADCAST_CONFIRMATION_PHRASE ? "BROADCAST" : "something other than BROADCAST"}`);
+  record(7, "user-confirmation", answer === BROADCAST_CONFIRMATION_PHRASE ? "ok" : "blocked", `user typed ${answer === BROADCAST_CONFIRMATION_PHRASE ? "BROADCAST" : "something other than BROADCAST"}`);
   if (answer !== BROADCAST_CONFIRMATION_PHRASE) {
     await recordBlockedExecution(deps.audit, decision, "User did not type BROADCAST; transaction not signed or broadcast.");
     return {
@@ -274,10 +282,10 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
   }
   if (deps.hooks?.afterConfirm) await deps.hooks.afterConfirm();
 
-  // Step 9: revalidation immediately before signing (fresh policy + clock, unchanged parameters).
+  // Step 8: revalidation immediately before signing (fresh policy + clock, unchanged parameters).
   const revalidation = await guard.revalidateForSigning(request, requestHash);
   record(
-    9,
+    8,
     "pre-sign-revalidation",
     revalidation.ok ? "ok" : "blocked",
     revalidation.ok
@@ -297,14 +305,14 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
     };
   }
 
-  // Step 10: duplicate-send protection — pending nonce must not be ahead of latest.
+  // Step 9: duplicate-send protection — pending nonce must not be ahead of latest.
   let latestNonce: number;
   let pendingNonce: number;
   try {
     latestNonce = await deps.rpc.getTransactionCount(sender, "latest");
     pendingNonce = await deps.rpc.getTransactionCount(sender, "pending");
     record(
-      10,
+      9,
       "nonce-check",
       pendingNonce === latestNonce ? "ok" : "blocked",
       `latest=${latestNonce} pending=${pendingNonce}`
@@ -322,11 +330,11 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
       };
     }
   } catch (err) {
-    record(10, "nonce-check", "failed", sanitize((err as Error).message));
-    return blockedAfterDecision(decision, `Nonce check failed: ${sanitize((err as Error).message)}`, stages, requestHash, simulation);
+    record(9, "nonce-check", "failed", sanitize((err as Error).message));
+    return await blockedAfterDecision(deps.audit, decision, `Nonce check failed: ${sanitize((err as Error).message)}`, stages, requestHash, simulation);
   }
 
-  // Step 11: local signing with viem (private key never leaves this machine).
+  // Step 10: local signing with viem (private key never leaves this machine).
   if (deps.hooks?.beforeSign) await deps.hooks.beforeSign();
   let signedTx: `0x${string}`;
   try {
@@ -339,9 +347,9 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
       gas: gasEstimate ?? 21000n,
       gasPrice: gasPrice ?? 0n
     });
-    record(11, "local-signing", "ok", "transaction signed locally (viem private-key account).");
+    record(10, "local-signing", "ok", "transaction signed locally (viem private-key account).");
   } catch (err) {
-    record(11, "local-signing", "failed", sanitize((err as Error).message));
+    record(10, "local-signing", "failed", sanitize((err as Error).message));
     await recordBlockedExecution(deps.audit, decision, `Signing failed before any submission: ${sanitize((err as Error).message)}`);
     return {
       status: "blocked",
@@ -354,14 +362,18 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
     };
   }
 
-  // Step 12: single submission attempt via eth_sendRawTransaction. Never retried.
+  // Step 11: single submission attempt via eth_sendRawTransaction. Never retried.
   let hash: `0x${string}` | null = null;
   try {
     hash = await deps.rpc.sendRawTransaction(signedTx);
-    record(12, "broadcast", "executed", `eth_sendRawTransaction → ${hash}`);
+    record(11, "broadcast", "executed", `eth_sendRawTransaction → ${hash}`);
   } catch (err) {
-    record(12, "broadcast", "failed", sanitize((err as Error).message));
-    await recordBlockedExecution(deps.audit, decision, `Submission error after possible broadcast (NOT retried): ${sanitize((err as Error).message)}`);
+    record(11, "broadcast", "failed", sanitize((err as Error).message));
+    // Post-broadcast: an audit failure must not erase the ambiguous outcome.
+    const auditPersistenceError = await tryRecordPostBroadcastAudit(
+      deps.audit,
+      blockedAuditRecord(decision, `Submission error after possible broadcast (NOT retried): ${sanitize((err as Error).message)}`)
+    );
     return {
       status: "ambiguous",
       policyDecision: decision,
@@ -369,15 +381,16 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
       simulation,
       stages,
       requestHash,
+      ...(auditPersistenceError ? { auditPersistenceError } : {}),
       notice:
         "Submission returned an error after the signed transaction may already have been broadcast. Per duplicate-send protection, no retry was attempted. The outcome is AMBIGUOUS: inspect the explorer and the sender's nonce/transaction list before doing anything else. No transaction hash was returned by the RPC, so none is reported."
     };
   }
 
-  // Step 13: wait for the real receipt.
+  // Step 12: wait for the real receipt.
   try {
     const receipt = await deps.rpc.waitForTransactionReceipt(hash, { timeoutMs: deps.receiptTimeoutMs ?? 120_000 });
-    record(13, "receipt", receipt.status === "success" ? "ok" : "failed", `status=${receipt.status} block=${receipt.blockNumber.toString()} gasUsed=${receipt.gasUsed.toString()}`);
+    record(12, "receipt", receipt.status === "success" ? "ok" : "failed", `status=${receipt.status} block=${receipt.blockNumber.toString()} gasUsed=${receipt.gasUsed.toString()}`);
     return await finalizeReceipt(deps, {
       decision,
       revalidationDecision: revalidation.decision,
@@ -390,7 +403,7 @@ export async function runLiveTransfer(deps: LiveTransferDeps, target: LiveTransf
       valueWei: target.valueWei
     });
   } catch (err) {
-    record(13, "receipt", "pending", `Receipt not available within timeout: ${sanitize((err as Error).message)}`);
+    record(12, "receipt", "pending", `Receipt not available within timeout: ${sanitize((err as Error).message)}`);
     // One honest manual check before declaring unresolved.
     const receipt = await deps.rpc.getTransactionReceipt(hash);
     if (receipt) {
@@ -484,7 +497,10 @@ async function finalizeReceipt(
     fieldVerification
   };
 
-  await deps.audit.append({
+  // Post-broadcast audit write: if this fails, the verified receipt above is
+  // still real — surface the persistence failure separately and never retry
+  // or rebroadcast because of it.
+  const auditPersistenceError = await tryRecordPostBroadcastAudit(deps.audit, {
     auditId: `aud-${crypto.randomUUID()}`,
     timestamp: new Date().toISOString(),
     kind: "execution_result",
@@ -501,6 +517,14 @@ async function finalizeReceipt(
     },
     transactionHash: receipt.transactionHash
   });
+  if (auditPersistenceError) {
+    ctx.stages.push({
+      step: 13,
+      name: "audit-persistence",
+      status: "failed",
+      detail: `Execution-result audit record could not be written (transaction result unaffected): ${auditPersistenceError}`
+    });
+  }
 
   return {
     status: receipt.status === "success" ? "confirmed" : "failed-onchain",
@@ -511,12 +535,14 @@ async function finalizeReceipt(
     receipt: report,
     explorerUrl: report.explorerUrl,
     stages: ctx.stages,
+    ...(auditPersistenceError ? { auditPersistenceError } : {}),
     requestHash: ctx.requestHash
   };
 }
 
-async function recordBlockedExecution(audit: AuditLogger, decision: PolicyDecision, detail: string): Promise<void> {
-  await audit.append({
+/** Builds an audit record for a live attempt that was blocked before signing/submission. */
+function blockedAuditRecord(decision: PolicyDecision, detail: string): AuditRecord {
+  return {
     auditId: `aud-${crypto.randomUUID()}`,
     timestamp: new Date().toISOString(),
     kind: "execution_result",
@@ -527,16 +553,46 @@ async function recordBlockedExecution(audit: AuditLogger, decision: PolicyDecisi
     decisionId: decision.decisionId,
     executionAttempted: false,
     execution: { status: "failed", detail: sanitize(detail) }
-  });
+  };
 }
 
-function blockedAfterDecision(
+/**
+ * Appends an audit record for a blocked live attempt. Pre-broadcast audit
+ * failures propagate (fail closed — nothing may proceed without a complete
+ * audit trail).
+ */
+async function recordBlockedExecution(audit: AuditLogger, decision: PolicyDecision, detail: string): Promise<void> {
+  await audit.append(blockedAuditRecord(decision, detail));
+}
+
+/**
+ * Post-broadcast audit write. A failure here must never erase or misrepresent
+ * the transaction outcome, so the error message is returned instead of thrown.
+ * Never retries the audit write and never touches the transaction again.
+ */
+async function tryRecordPostBroadcastAudit(audit: AuditLogger, record: AuditRecord): Promise<string | null> {
+  try {
+    await audit.append(record);
+    return null;
+  } catch (err) {
+    return sanitize((err as Error).message);
+  }
+}
+
+/**
+ * Blocks after a policy ALLOW decision (failed safety check). The ALLOW
+ * decision is already audited; this appends the blocked-attempt record.
+ * Pre-broadcast audit failures propagate (fail closed).
+ */
+async function blockedAfterDecision(
+  audit: AuditLogger,
   decision: PolicyDecision,
   reason: string,
   stages: StageRecord[],
   requestHash: string,
   simulation?: SimulationResult
-): LiveTransferResult {
+): Promise<LiveTransferResult> {
+  await recordBlockedExecution(audit, decision, reason);
   return {
     status: "blocked",
     blockedReason: reason,
