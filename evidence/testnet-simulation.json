@@ -1,6 +1,6 @@
 {
   "label": "SIMULATION — NO TRANSACTION BROADCAST",
-  "generatedAt": "2026-10-26T23:21:15.728Z",
+  "generatedAt": "2026-10-27T05:57:50.536Z",
   "broadcasted": false,
   "signed": false,
   "network": {
@@ -11,8 +11,8 @@
     "rpcUrl": "https://atlantic.dplabs-internal.com"
   },
   "policy": {
-    "decisionId": "dec-e0dbff9e-412d-4518-8aa5-561be7b18924",
-    "decision": "DENY",
+    "decisionId": "dec-b6a1b1a7-2c3b-4509-a48a-31ca79dc2a1e",
+    "decision": "ALLOW",
     "policyId": "pharos-atlantic-default",
     "policyVersion": "1.0.0",
     "ruleResults": [
@@ -23,23 +23,21 @@
       },
       {
         "ruleId": "ADDRESS_ALLOWLIST",
-        "passed": false,
-        "reason": "Recipient 0x2222222222222222222222222222222222222222 is not on the approved recipient allowlist (1 approved)."
+        "passed": true,
+        "reason": "Recipient 0xB0f7681668f916eEd97dA066D31aA295D34727c0 is approved for native transfers (sender 0x299Ce4113abF88F4997737184aa8A7a3D58AC15C)."
       },
       {
         "ruleId": "TIME_WINDOW",
         "passed": true,
-        "reason": "Request local time 23:21 on 2026-10-26 (Mon) in UTC is inside allowed window \"00:00-23:59\" (start inclusive, end inclusive)."
+        "reason": "Request local time 05:57 on 2026-10-27 (Tue) in UTC is inside allowed window \"00:00-23:59\" (start inclusive, end inclusive)."
       }
     ],
-    "reasons": [
-      "Recipient 0x2222222222222222222222222222222222222222 is not on the approved recipient allowlist (1 approved)."
-    ]
+    "reasons": []
   },
   "request": {
     "kind": "native_transfer",
-    "sender": "0x1111111111111111111111111111111111111111",
-    "recipient": "0x2222222222222222222222222222222222222222",
+    "sender": "0x299Ce4113abF88F4997737184aa8A7a3D58AC15C",
+    "recipient": "0xB0f7681668f916eEd97dA066D31aA295D34727c0",
     "valueWei": "1000000000000000",
     "valuePhrs": "0.001"
   },
@@ -55,8 +53,8 @@
     "gasPriceWei": "10000000000",
     "estimatedFeeWei": "210000000000000",
     "estimatedFeePhrs": "0.00021",
-    "senderBalanceWei": "204868297450154497",
-    "predictedSenderBalanceAfterWei": "203658297450154497",
+    "senderBalanceWei": "109080000000000000",
+    "predictedSenderBalanceAfterWei": "107870000000000000",
     "balancePredictionReliable": true
   },
   "notes": [

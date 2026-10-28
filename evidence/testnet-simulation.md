@@ -2,7 +2,7 @@
 
 > **SIMULATION — NO TRANSACTION BROADCAST**
 
-Generated: 2026-10-26T23:21:15.728Z
+Generated: 2026-10-27T05:57:50.536Z
 
 ## Network
 
@@ -18,23 +18,23 @@ Generated: 2026-10-26T23:21:15.728Z
 
 | Field | Value |
 |---|---|
-| Sender | 0x1111111111111111111111111111111111111111 |
-| Recipient | 0x2222222222222222222222222222222222222222 |
+| Sender | 0x299Ce4113abF88F4997737184aa8A7a3D58AC15C |
+| Recipient | 0xB0f7681668f916eEd97dA066D31aA295D34727c0 |
 | Value | 1000000000000000 wei (0.001 PHRS) |
 
 ## Policy decision
 
 | Field | Value |
 |---|---|
-| Decision | DENY |
-| Decision ID | dec-e0dbff9e-412d-4518-8aa5-561be7b18924 |
+| Decision | ALLOW |
+| Decision ID | dec-b6a1b1a7-2c3b-4509-a48a-31ca79dc2a1e |
 | Policy | pharos-atlantic-default v1.0.0 |
 
 Rule results:
 
 - **SPEND_LIMIT**: PASS — Requested 1000000000000000 wei is within the policy maximum 10000000000000000 wei (inclusive).
-- **ADDRESS_ALLOWLIST**: FAIL — Recipient 0x2222222222222222222222222222222222222222 is not on the approved recipient allowlist (1 approved).
-- **TIME_WINDOW**: PASS — Request local time 23:21 on 2026-10-26 (Mon) in UTC is inside allowed window "00:00-23:59" (start inclusive, end inclusive).
+- **ADDRESS_ALLOWLIST**: PASS — Recipient 0xB0f7681668f916eEd97dA066D31aA295D34727c0 is approved for native transfers (sender 0x299Ce4113abF88F4997737184aa8A7a3D58AC15C).
+- **TIME_WINDOW**: PASS — Request local time 05:57 on 2026-10-27 (Tue) in UTC is inside allowed window "00:00-23:59" (start inclusive, end inclusive).
 
 ## Simulation result
 
@@ -45,8 +45,8 @@ Rule results:
 | Gas estimate (eth_estimateGas) | 21000 |
 | Gas price | 10000000000 wei |
 | Estimated fee | 210000000000000 wei (0.00021 PHRS) |
-| Sender balance | 204868297450154497 wei |
-| Predicted balance after | 203658297450154497 |
+| Sender balance | 109080000000000000 wei |
+| Predicted balance after | 107870000000000000 |
 | Balance prediction reliable | true |
 
 ### Notes

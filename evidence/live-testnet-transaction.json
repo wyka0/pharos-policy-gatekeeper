@@ -1,0 +1,177 @@
+{
+  "label": "LIVE TESTNET TRANSACTION — REAL BROADCAST",
+  "generatedAt": "2026-10-27T05:58:48.366Z",
+  "status": "confirmed",
+  "network": {
+    "name": "Pharos Atlantic Testnet",
+    "chainId": 688689
+  },
+  "timeline": [
+    {
+      "phase": "Policy approval",
+      "state": "ALLOW (dec-f35eee31-d490-4b8e-bfd8-69a755d468d6)"
+    },
+    {
+      "phase": "Pre-broadcast simulation",
+      "state": "success (read-only)"
+    },
+    {
+      "phase": "Actual broadcast",
+      "state": "broadcast: 0xba90d4192c4c3a39aa2889ed27fe9648938abb7d73d6ef8677dad3915a484235"
+    },
+    {
+      "phase": "Receipt confirmation",
+      "state": "receipt status success in block 31933688"
+    }
+  ],
+  "policy": {
+    "decisionId": "dec-f35eee31-d490-4b8e-bfd8-69a755d468d6",
+    "decision": "ALLOW",
+    "policyId": "pharos-atlantic-default",
+    "policyVersion": "1.0.0",
+    "ruleResults": [
+      {
+        "ruleId": "SPEND_LIMIT",
+        "passed": true,
+        "reason": "Requested 1000000000000000 wei is within the policy maximum 10000000000000000 wei (inclusive)."
+      },
+      {
+        "ruleId": "ADDRESS_ALLOWLIST",
+        "passed": true,
+        "reason": "Recipient 0xB0f7681668f916eEd97dA066D31aA295D34727c0 is approved for native transfers (sender 0x299Ce4113abF88F4997737184aa8A7a3D58AC15C)."
+      },
+      {
+        "ruleId": "TIME_WINDOW",
+        "passed": true,
+        "reason": "Request local time 05:58 on 2026-10-27 (Tue) in UTC is inside allowed window \"00:00-23:59\" (start inclusive, end inclusive)."
+      }
+    ],
+    "reasons": []
+  },
+  "revalidation": {
+    "decisionId": "dec-a08ee939-02d8-49f7-b3e3-b50f134896f1",
+    "decision": "ALLOW"
+  },
+  "preBroadcastSimulation": {
+    "ethCallStatus": "success",
+    "gasEstimateWei": "21000",
+    "label": "SIMULATION — NO TRANSACTION BROADCAST"
+  },
+  "broadcast": {
+    "transactionHash": "0xba90d4192c4c3a39aa2889ed27fe9648938abb7d73d6ef8677dad3915a484235",
+    "explorerUrl": "https://atlantic.pharosscan.xyz/tx/0xba90d4192c4c3a39aa2889ed27fe9648938abb7d73d6ef8677dad3915a484235"
+  },
+  "receipt": {
+    "transactionHash": "0xba90d4192c4c3a39aa2889ed27fe9648938abb7d73d6ef8677dad3915a484235",
+    "chainId": 688689,
+    "networkName": "Pharos Atlantic Testnet",
+    "from": "0x299ce4113abf88f4997737184aa8a7a3d58ac15c",
+    "to": "0xb0f7681668f916eed97da066d31aa295d34727c0",
+    "valueWei": "1000000000000000",
+    "valuePhrs": "0.001",
+    "blockNumber": "31933688",
+    "status": "success",
+    "gasUsed": "21000",
+    "effectiveGasPriceWei": "10000000000",
+    "actualFeeWei": "210000000000000",
+    "actualFeePhrs": "0.00021",
+    "confirmationsChecked": 2,
+    "explorerUrl": "https://atlantic.pharosscan.xyz/tx/0xba90d4192c4c3a39aa2889ed27fe9648938abb7d73d6ef8677dad3915a484235",
+    "fieldVerification": [
+      {
+        "field": "from",
+        "expected": "0x299Ce4113abF88F4997737184aa8A7a3D58AC15C",
+        "actual": "0x299ce4113abf88f4997737184aa8a7a3d58ac15c",
+        "match": true
+      },
+      {
+        "field": "to",
+        "expected": "0xB0f7681668f916eEd97dA066D31aA295D34727c0",
+        "actual": "0xb0f7681668f916eed97da066d31aa295d34727c0",
+        "match": true
+      },
+      {
+        "field": "value (wei)",
+        "expected": "1000000000000000",
+        "actual": "1000000000000000",
+        "match": true
+      }
+    ]
+  },
+  "stages": [
+    {
+      "step": 1,
+      "name": "chain-id-verification",
+      "status": "ok",
+      "detail": "RPC reports chain ID 688689; expected 688689."
+    },
+    {
+      "step": 2,
+      "name": "policy-decision",
+      "status": "ok",
+      "detail": "Policy pharos-atlantic-default v1.0.0 → ALLOW"
+    },
+    {
+      "step": 3,
+      "name": "gas-estimation",
+      "status": "ok",
+      "detail": "eth_estimateGas → 21000"
+    },
+    {
+      "step": 4,
+      "name": "gas-price",
+      "status": "ok",
+      "detail": "gas price → 10000000000 wei"
+    },
+    {
+      "step": 5,
+      "name": "sender-balance",
+      "status": "ok",
+      "detail": "balance → 109080000000000000 wei (0.10908 PHRS)"
+    },
+    {
+      "step": 6,
+      "name": "pre-broadcast-simulation",
+      "status": "ok",
+      "detail": "eth_call: success\ngas estimate: 21000\ngas price: 10000000000 wei\nestimated fee: 210000000000000 wei (0.00021 PHRS)\nsender balance: 109080000000000000 wei"
+    },
+    {
+      "step": 7,
+      "name": "user-confirmation",
+      "status": "ok",
+      "detail": "user typed BROADCAST"
+    },
+    {
+      "step": 8,
+      "name": "pre-sign-revalidation",
+      "status": "ok",
+      "detail": "Policy re-evaluated: ALLOW (decision dec-a08ee939-02d8-49f7-b3e3-b50f134896f1); transaction parameters unchanged (hash 33af40dec1cb4791…)."
+    },
+    {
+      "step": 9,
+      "name": "nonce-check",
+      "status": "ok",
+      "detail": "latest=2 pending=2"
+    },
+    {
+      "step": 10,
+      "name": "local-signing",
+      "status": "ok",
+      "detail": "transaction signed locally (viem private-key account)."
+    },
+    {
+      "step": 11,
+      "name": "broadcast",
+      "status": "executed",
+      "detail": "eth_sendRawTransaction → 0xba90d4192c4c3a39aa2889ed27fe9648938abb7d73d6ef8677dad3915a484235"
+    },
+    {
+      "step": 12,
+      "name": "receipt",
+      "status": "ok",
+      "detail": "status=success block=31933688 gasUsed=21000"
+    }
+  ],
+  "auditPersistenceError": null,
+  "secrets": "none — private keys and signed raw transaction bytes are never written to evidence"
+}
